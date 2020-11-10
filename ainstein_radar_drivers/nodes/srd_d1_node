@@ -12,7 +12,7 @@ SRD_D1_SINGLE_HEADER = 0x55AA
 SRD_D1_SINGLE_TAIL = 0x5AA5
 SRD_D1_PACKETSIZE = 15
 
-class SRD_D1_MULTIPLE_UART(object):
+class SRD_D1_MULTIPLE_UART(object): 
     def __init__(self, uart, frame_id):
         self.uart = uart
         self.pub = rospy.Publisher( '~targets/raw', RadarTargetArray, queue_size=10 )
@@ -28,7 +28,7 @@ class SRD_D1_MULTIPLE_UART(object):
             Tail_Bytes = [0, 0]
             rx_checksum = 0
             if ( True ):
-                # print(self.uart.read())
+                print(self.uart.read())
                 try:
                     while True:
                         Header_Bytes[0] = ord(self.uart.read())
@@ -136,7 +136,7 @@ class SRD_D1_MULTIPLE_UART(object):
             Tail_Bytes = [0, 0]
             rx_checksum = 0
             if (True):
-                # print ord(self.uart.read())
+                print ord(self.uart.read())
                 try:
                     while True:
                         Header_Bytes[0] = ord(self.uart.read())
@@ -234,11 +234,12 @@ class SRD_D1_MULTIPLE_UART(object):
 
 if __name__ == "__main__":
     try:
+	
         rospy.init_node( 'srd_d1_node')
         frame_id = rospy.get_param( '~frame_id', 'map' )
         device_id = rospy.get_param( '~device_id', '/dev/ttyUSB0' )
-        firmware_version = rospy.get_param( '~firmware_version', 'old' )
-        
+        firmware_version = rospy.get_param( '~firmware_version', 'new' )
+        print device_id
         if firmware_version == 'old':
             with serial.Serial( device_id, 460800, timeout=1 ) as ser:
                 intf = SRD_D1_MULTIPLE_UART( ser, frame_id )

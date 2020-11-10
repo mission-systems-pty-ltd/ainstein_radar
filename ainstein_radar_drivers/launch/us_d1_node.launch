@@ -1,0 +1,5 @@
+<launch>
+  <node name="us_d1_node" pkg="ainstein_radar_drivers" type="us_d1_node" >
+    <param name="firmware_version" value="old" />
+  </node>
+</launch>

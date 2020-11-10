@@ -1,0 +1,96 @@
+#!/usr/bin/env python
+
+import serial
+import time
+import binascii
+
+import rospy
+from ainstein_radar_msgs.msg import RadarTargetArray
+from ainstein_radar_msgs.msg import RadarTarget
+
+US_D1_SINGLE_HEADER = 0xFE
+US_D1_PACKETSIZE = 6
+
+class US_D1_MULTIPLE_UART(object): 
+    def __init__(self, uart, frame_id):
+        self.uart = uart
+        self.pub = rospy.Publisher( '~targets/raw', RadarTargetArray, queue_size=10 )
+        self.radar_data_msg_raw = RadarTargetArray()
+        self.radar_data_msg_raw.header.stamp = rospy.Time(0)
+        rospy.init_node( 'us_d1_node')
+        self.radar_data_msg_raw.header.frame_id = frame_id
+        
+    def data_receive_us_d1_multiple(self):
+	#print "test0"
+        while not rospy.is_shutdown():
+            whole_packet = [] # fixed packet length
+            rx_checksum = 1
+            if ( True ):
+                try:
+                    while True:
+			#print(self.uart.read())
+                        Header_Byte = ord(self.uart.read())
+			#print Header_Byte
+                        if Header_Byte == (US_D1_SINGLE_HEADER):
+			    whole_packet.append(Header_Byte)
+			    Version_Byte = ord(self.uart.read())
+			    whole_packet.append(Version_Byte)
+			    Altitute_LSB = ord(self.uart.read())
+			    whole_packet.append(Altitute_LSB)
+			    Altitute_MSB = ord(self.uart.read())
+			    whole_packet.append(Altitute_MSB)
+			    altitude = (Altitute_MSB*256 + Altitute_LSB)/100
+			    #print "Altitude = ", altitude
+			    SNR_Byte = ord(self.uart.read())
+			    #print "SNR = ", SNR_Byte
+			    whole_packet.append(SNR_Byte)
+			    Checksum_Byte = ord(self.uart.read())
+			    whole_packet.append(Checksum_Byte)
+			    rx_checksum = (Version_Byte + Altitute_LSB + Altitute_MSB + SNR_Byte)
+			    #print rx_checksum
+			    if Checksum_Byte > 0:
+				break
+			    else:
+				continue
+				print "Incorrect checksum"
+                        else:
+			    continue
+			    print "Incorrect header"
+
+		    self.radar_data_msg_raw.targets = []
+		    target = RadarTarget()
+		    target.target_id = 0
+		    target.snr = SNR_Byte
+                    target.range = altitude
+
+		    self.radar_data_msg_raw.targets.append( target )
+		    self.pub.publish( self.radar_data_msg_raw )
+
+                except Exception, e:
+
+                    print e.message
+            else:
+                return
+
+if __name__ == "__main__":
+    try:
+	
+        rospy.init_node( 'us_d1_node')
+        frame_id = rospy.get_param( '~frame_id', 'map' )
+        device_id = rospy.get_param( '~device_id', '/dev/ttyUSB0' )
+        firmware_version = rospy.get_param( '~firmware_version', 'old' )
+        print device_id
+        if firmware_version == 'old':
+            with serial.Serial( device_id, 115200, timeout=1 ) as ser:
+                intf = US_D1_MULTIPLE_UART( ser, frame_id )
+                intf.data_receive_us_d1_multiple()
+        elif firmware_version == 'new':
+            with serial.Serial( device_id, 115200, timeout=1 ) as ser:                
+                intf = US_D1_MULTIPLE_UART( ser, frame_id )
+                intf.data_receive_us_d1_us_launch()
+        else:
+            rospy.logerr( 'Invalid firmware_version parameter.' )
+
+    except rospy.ROSInterruptException:
+        pass
+
